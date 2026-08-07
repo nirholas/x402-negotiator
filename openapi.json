@@ -1549,7 +1549,8 @@
           "404": {
             "description": "thread_not_found."
           }
-        }
+        },
+        "security": []
       }
     },
     "/verify-chain": {
@@ -1998,7 +1999,8 @@
           "400": {
             "description": "Body must be an array of instruments, or {chain: [...]}."
           }
-        }
+        },
+        "security": []
       }
     },
     "/verify": {
@@ -2043,7 +2045,8 @@
           "400": {
             "description": "Body must be {payload, signature}."
           }
-        }
+        },
+        "security": []
       }
     },
     "/healthz": {
@@ -2060,7 +2063,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/.well-known/x402": {
@@ -2077,7 +2081,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     }
   },

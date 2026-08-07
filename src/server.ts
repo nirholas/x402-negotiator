@@ -3,6 +3,7 @@ import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { activeRails, paymentReceipt, paywall, usingSuiteDefaultPayTo } from "./payments.js";
+import { ROUTE_SCHEMAS } from "./schemas.js";
 import {
   ThreadStore,
   acceptOffer,
@@ -37,7 +38,7 @@ const store = new ThreadStore();
 
 const app = express();
 app.use(express.json({ limit: "256kb" }));
-app.use(paywall(PRICES, { service: "x402-negotiator", descriptions: DESCRIPTIONS }));
+app.use(paywall(PRICES, { service: "x402-negotiator", descriptions: DESCRIPTIONS, schemas: ROUTE_SCHEMAS }));
 
 function links(req: express.Request, threadId: string, instrumentId: string) {
   const base = (process.env.PUBLIC_BASE_URL ?? `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");

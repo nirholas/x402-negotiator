@@ -1,0 +1,2546 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "x402-negotiator",
+    "version": "0.1.0",
+    "description": "Agent-to-agent price negotiation as signed, hash-linked instruments. Three paid moves — offer, counter, accept — each returning its artifact in the 200 body. Paid routes respond 402 with a dual-rail x402 challenge (USDC on Base and USDC on Solana) until an X-PAYMENT header settles on either rail.",
+    "license": {
+      "name": "Apache-2.0",
+      "identifier": "Apache-2.0"
+    },
+    "contact": {
+      "name": "nirholas",
+      "email": "nichxbt@gmail.com",
+      "url": "https://github.com/nirholas/x402-negotiator"
+    }
+  },
+  "paths": {
+    "/offers": {
+      "post": {
+        "summary": "Open a negotiation ($0.001)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferRequest"
+              },
+              "examples": {
+                "gpuHours": {
+                  "summary": "Buyer opens on compute capacity",
+                  "value": {
+                    "from": "agent:buyer-1",
+                    "fromSide": "buyer",
+                    "to": "agent:seller-9",
+                    "item": "200 GPU-hours (A100)",
+                    "quantity": 200,
+                    "unitPriceUsd": 1.5,
+                    "terms": {
+                      "delivery": "within 7 days",
+                      "settlementRails": [
+                        "x402:base:USDC",
+                        "x402:solana:USDC"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed offer instrument, thread record, and counter/accept links.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "instrument": {
+                      "type": "object",
+                      "description": "A signed negotiation instrument. `payload.prevSignature` and `payload.prevHash` link it to the previous instrument in the thread, forming a verifiable chain.",
+                      "properties": {
+                        "payload": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "offer",
+                                "counter",
+                                "agreement",
+                                "rejection"
+                              ]
+                            },
+                            "instrumentId": {
+                              "type": "string"
+                            },
+                            "threadId": {
+                              "type": "string"
+                            },
+                            "seq": {
+                              "type": "integer",
+                              "description": "1-based position in the chain."
+                            },
+                            "prevSignature": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "prevHash": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "SHA-256 over the canonical JSON of the previous payload."
+                            },
+                            "from": {
+                              "type": "string"
+                            },
+                            "fromSide": {
+                              "type": "string",
+                              "enum": [
+                                "buyer",
+                                "seller"
+                              ]
+                            },
+                            "to": {
+                              "type": "string"
+                            },
+                            "item": {
+                              "type": "string"
+                            },
+                            "quantity": {
+                              "type": "number"
+                            },
+                            "unitPriceUsd": {
+                              "type": "number"
+                            },
+                            "priceUsd": {
+                              "type": "number",
+                              "description": "unitPriceUsd × quantity."
+                            },
+                            "currency": {
+                              "type": "string",
+                              "const": "USD"
+                            },
+                            "terms": {
+                              "type": "object",
+                              "properties": {
+                                "delivery": {
+                                  "type": "string"
+                                },
+                                "validUntil": {
+                                  "type": "string"
+                                },
+                                "settlementRails": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "notes": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "issuedAt": {
+                              "type": "string"
+                            },
+                            "concession": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "description": "Movement analysis. Null on the opening offer.",
+                              "properties": {
+                                "movedUsd": {
+                                  "type": "number"
+                                },
+                                "movedPct": {
+                                  "type": "number"
+                                },
+                                "gapUsd": {
+                                  "type": "number"
+                                },
+                                "gapPct": {
+                                  "type": "number"
+                                },
+                                "totalMoved": {
+                                  "type": "object",
+                                  "properties": {
+                                    "buyer": {
+                                      "type": "number"
+                                    },
+                                    "seller": {
+                                      "type": "number"
+                                    }
+                                  }
+                                },
+                                "projectedSettleUsd": {
+                                  "type": [
+                                    "number",
+                                    "null"
+                                  ]
+                                },
+                                "projectedRounds": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "note": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "settlement": {
+                              "type": "object",
+                              "description": "Agreements only. What is owed, by whom, on which rails, by when.",
+                              "properties": {
+                                "agreedPriceUsd": {
+                                  "type": "number"
+                                },
+                                "agreedUnitPriceUsd": {
+                                  "type": "number"
+                                },
+                                "quantity": {
+                                  "type": "number"
+                                },
+                                "payer": {
+                                  "type": "string"
+                                },
+                                "payerSide": {
+                                  "type": "string"
+                                },
+                                "payee": {
+                                  "type": "string"
+                                },
+                                "payeeSide": {
+                                  "type": "string"
+                                },
+                                "settlementRails": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "settleBy": {
+                                  "type": "string"
+                                },
+                                "openedAtUsd": {
+                                  "type": "number"
+                                },
+                                "totalMovementUsd": {
+                                  "type": "number"
+                                },
+                                "instructions": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "reason": {
+                              "type": "string",
+                              "description": "Rejections only."
+                            }
+                          }
+                        },
+                        "signature": {
+                          "type": "string"
+                        },
+                        "algorithm": {
+                          "type": "string",
+                          "const": "HMAC-SHA256"
+                        },
+                        "canonicalization": {
+                          "type": "string",
+                          "const": "sorted-json"
+                        }
+                      }
+                    },
+                    "thread": {
+                      "type": "object",
+                      "properties": {
+                        "threadId": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "open",
+                            "agreed",
+                            "withdrawn",
+                            "expired"
+                          ]
+                        },
+                        "parties": {
+                          "type": "object",
+                          "properties": {
+                            "buyer": {
+                              "type": "string"
+                            },
+                            "seller": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "seq": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "thread": {
+                          "type": "string"
+                        },
+                        "counter": {
+                          "type": "string"
+                        },
+                        "accept": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "payment": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Settlement receipt for this call — same content as X-PAYMENT-RESPONSE."
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-PAYMENT-RESPONSE": {
+                "description": "Base64 JSON settlement receipt.",
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body — names the missing field and includes a worked example.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "hint": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — dual-rail x402 challenge.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequirements"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Facilitator unreachable or settlement error — nothing was charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-PAYMENT",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Base64-encoded x402 payment payload. Its `network` selects the rail (base-sepolia/base or solana/solana-devnet). Omit it to receive the 402 challenge."
+          }
+        ]
+      }
+    },
+    "/counter/{offerId}": {
+      "post": {
+        "summary": "Counter the latest instrument ($0.001)",
+        "parameters": [
+          {
+            "name": "offerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "instrumentId of the LATEST instrument in the thread."
+          },
+          {
+            "name": "X-PAYMENT",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Base64-encoded x402 payment payload. Its `network` selects the rail (base-sepolia/base or solana/solana-devnet). Omit it to receive the 402 challenge."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CounterRequest"
+              },
+              "examples": {
+                "seller": {
+                  "summary": "Seller counters",
+                  "value": {
+                    "from": "agent:seller-9",
+                    "unitPriceUsd": 2.4,
+                    "terms": {
+                      "notes": "best I can do at this volume"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed counter with concession analysis.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "instrument": {
+                      "type": "object",
+                      "description": "A signed negotiation instrument. `payload.prevSignature` and `payload.prevHash` link it to the previous instrument in the thread, forming a verifiable chain.",
+                      "properties": {
+                        "payload": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "offer",
+                                "counter",
+                                "agreement",
+                                "rejection"
+                              ]
+                            },
+                            "instrumentId": {
+                              "type": "string"
+                            },
+                            "threadId": {
+                              "type": "string"
+                            },
+                            "seq": {
+                              "type": "integer",
+                              "description": "1-based position in the chain."
+                            },
+                            "prevSignature": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "prevHash": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "SHA-256 over the canonical JSON of the previous payload."
+                            },
+                            "from": {
+                              "type": "string"
+                            },
+                            "fromSide": {
+                              "type": "string",
+                              "enum": [
+                                "buyer",
+                                "seller"
+                              ]
+                            },
+                            "to": {
+                              "type": "string"
+                            },
+                            "item": {
+                              "type": "string"
+                            },
+                            "quantity": {
+                              "type": "number"
+                            },
+                            "unitPriceUsd": {
+                              "type": "number"
+                            },
+                            "priceUsd": {
+                              "type": "number",
+                              "description": "unitPriceUsd × quantity."
+                            },
+                            "currency": {
+                              "type": "string",
+                              "const": "USD"
+                            },
+                            "terms": {
+                              "type": "object",
+                              "properties": {
+                                "delivery": {
+                                  "type": "string"
+                                },
+                                "validUntil": {
+                                  "type": "string"
+                                },
+                                "settlementRails": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "notes": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "issuedAt": {
+                              "type": "string"
+                            },
+                            "concession": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "description": "Movement analysis. Null on the opening offer.",
+                              "properties": {
+                                "movedUsd": {
+                                  "type": "number"
+                                },
+                                "movedPct": {
+                                  "type": "number"
+                                },
+                                "gapUsd": {
+                                  "type": "number"
+                                },
+                                "gapPct": {
+                                  "type": "number"
+                                },
+                                "totalMoved": {
+                                  "type": "object",
+                                  "properties": {
+                                    "buyer": {
+                                      "type": "number"
+                                    },
+                                    "seller": {
+                                      "type": "number"
+                                    }
+                                  }
+                                },
+                                "projectedSettleUsd": {
+                                  "type": [
+                                    "number",
+                                    "null"
+                                  ]
+                                },
+                                "projectedRounds": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "note": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "settlement": {
+                              "type": "object",
+                              "description": "Agreements only. What is owed, by whom, on which rails, by when.",
+                              "properties": {
+                                "agreedPriceUsd": {
+                                  "type": "number"
+                                },
+                                "agreedUnitPriceUsd": {
+                                  "type": "number"
+                                },
+                                "quantity": {
+                                  "type": "number"
+                                },
+                                "payer": {
+                                  "type": "string"
+                                },
+                                "payerSide": {
+                                  "type": "string"
+                                },
+                                "payee": {
+                                  "type": "string"
+                                },
+                                "payeeSide": {
+                                  "type": "string"
+                                },
+                                "settlementRails": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "settleBy": {
+                                  "type": "string"
+                                },
+                                "openedAtUsd": {
+                                  "type": "number"
+                                },
+                                "totalMovementUsd": {
+                                  "type": "number"
+                                },
+                                "instructions": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "reason": {
+                              "type": "string",
+                              "description": "Rejections only."
+                            }
+                          }
+                        },
+                        "signature": {
+                          "type": "string"
+                        },
+                        "algorithm": {
+                          "type": "string",
+                          "const": "HMAC-SHA256"
+                        },
+                        "canonicalization": {
+                          "type": "string",
+                          "const": "sorted-json"
+                        }
+                      }
+                    },
+                    "thread": {
+                      "type": "object",
+                      "properties": {
+                        "threadId": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "open",
+                            "agreed",
+                            "withdrawn",
+                            "expired"
+                          ]
+                        },
+                        "parties": {
+                          "type": "object",
+                          "properties": {
+                            "buyer": {
+                              "type": "string"
+                            },
+                            "seller": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "seq": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "thread": {
+                          "type": "string"
+                        },
+                        "counter": {
+                          "type": "string"
+                        },
+                        "accept": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "payment": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Settlement receipt for this call — same content as X-PAYMENT-RESPONSE."
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-PAYMENT-RESPONSE": {
+                "description": "Base64 JSON settlement receipt.",
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body — names the missing field and includes a worked example.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "hint": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — dual-rail x402 challenge.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequirements"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "not_a_party — a signed rejection instrument is returned, since payment settled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "rejection": {
+                      "$ref": "#/components/schemas/Instrument"
+                    },
+                    "payment": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Settlement receipt for this call — same content as X-PAYMENT-RESPONSE."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "instrument_not_found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "not_your_turn / stale_instrument / thread_agreed / thread_expired — a signed rejection instrument is returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "rejection": {
+                      "$ref": "#/components/schemas/Instrument"
+                    },
+                    "payment": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Settlement receipt for this call — same content as X-PAYMENT-RESPONSE."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Facilitator unreachable or settlement error — nothing was charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accept/{offerId}": {
+      "post": {
+        "summary": "Accept the counterparty's position ($0.001)",
+        "parameters": [
+          {
+            "name": "offerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "instrumentId of the LATEST instrument, which must not be your own."
+          },
+          {
+            "name": "X-PAYMENT",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Base64-encoded x402 payment payload. Its `network` selects the rail (base-sepolia/base or solana/solana-devnet). Omit it to receive the 402 challenge."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptRequest"
+              },
+              "examples": {
+                "close": {
+                  "summary": "Seller accepts the buyer's counter",
+                  "value": {
+                    "from": "agent:seller-9",
+                    "settleWithinHours": 24,
+                    "notes": "invoice to ops@example.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed agreement, settlement terms, and the complete chain.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agreement": {
+                      "type": "object",
+                      "description": "A signed negotiation instrument. `payload.prevSignature` and `payload.prevHash` link it to the previous instrument in the thread, forming a verifiable chain.",
+                      "properties": {
+                        "payload": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "offer",
+                                "counter",
+                                "agreement",
+                                "rejection"
+                              ]
+                            },
+                            "instrumentId": {
+                              "type": "string"
+                            },
+                            "threadId": {
+                              "type": "string"
+                            },
+                            "seq": {
+                              "type": "integer",
+                              "description": "1-based position in the chain."
+                            },
+                            "prevSignature": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "prevHash": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "SHA-256 over the canonical JSON of the previous payload."
+                            },
+                            "from": {
+                              "type": "string"
+                            },
+                            "fromSide": {
+                              "type": "string",
+                              "enum": [
+                                "buyer",
+                                "seller"
+                              ]
+                            },
+                            "to": {
+                              "type": "string"
+                            },
+                            "item": {
+                              "type": "string"
+                            },
+                            "quantity": {
+                              "type": "number"
+                            },
+                            "unitPriceUsd": {
+                              "type": "number"
+                            },
+                            "priceUsd": {
+                              "type": "number",
+                              "description": "unitPriceUsd × quantity."
+                            },
+                            "currency": {
+                              "type": "string",
+                              "const": "USD"
+                            },
+                            "terms": {
+                              "type": "object",
+                              "properties": {
+                                "delivery": {
+                                  "type": "string"
+                                },
+                                "validUntil": {
+                                  "type": "string"
+                                },
+                                "settlementRails": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "notes": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "issuedAt": {
+                              "type": "string"
+                            },
+                            "concession": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "description": "Movement analysis. Null on the opening offer.",
+                              "properties": {
+                                "movedUsd": {
+                                  "type": "number"
+                                },
+                                "movedPct": {
+                                  "type": "number"
+                                },
+                                "gapUsd": {
+                                  "type": "number"
+                                },
+                                "gapPct": {
+                                  "type": "number"
+                                },
+                                "totalMoved": {
+                                  "type": "object",
+                                  "properties": {
+                                    "buyer": {
+                                      "type": "number"
+                                    },
+                                    "seller": {
+                                      "type": "number"
+                                    }
+                                  }
+                                },
+                                "projectedSettleUsd": {
+                                  "type": [
+                                    "number",
+                                    "null"
+                                  ]
+                                },
+                                "projectedRounds": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "note": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "settlement": {
+                              "type": "object",
+                              "description": "Agreements only. What is owed, by whom, on which rails, by when.",
+                              "properties": {
+                                "agreedPriceUsd": {
+                                  "type": "number"
+                                },
+                                "agreedUnitPriceUsd": {
+                                  "type": "number"
+                                },
+                                "quantity": {
+                                  "type": "number"
+                                },
+                                "payer": {
+                                  "type": "string"
+                                },
+                                "payerSide": {
+                                  "type": "string"
+                                },
+                                "payee": {
+                                  "type": "string"
+                                },
+                                "payeeSide": {
+                                  "type": "string"
+                                },
+                                "settlementRails": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "settleBy": {
+                                  "type": "string"
+                                },
+                                "openedAtUsd": {
+                                  "type": "number"
+                                },
+                                "totalMovementUsd": {
+                                  "type": "number"
+                                },
+                                "instructions": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "reason": {
+                              "type": "string",
+                              "description": "Rejections only."
+                            }
+                          }
+                        },
+                        "signature": {
+                          "type": "string"
+                        },
+                        "algorithm": {
+                          "type": "string",
+                          "const": "HMAC-SHA256"
+                        },
+                        "canonicalization": {
+                          "type": "string",
+                          "const": "sorted-json"
+                        }
+                      }
+                    },
+                    "settlement": {
+                      "type": "object",
+                      "description": "Agreements only. What is owed, by whom, on which rails, by when.",
+                      "properties": {
+                        "agreedPriceUsd": {
+                          "type": "number"
+                        },
+                        "agreedUnitPriceUsd": {
+                          "type": "number"
+                        },
+                        "quantity": {
+                          "type": "number"
+                        },
+                        "payer": {
+                          "type": "string"
+                        },
+                        "payerSide": {
+                          "type": "string"
+                        },
+                        "payee": {
+                          "type": "string"
+                        },
+                        "payeeSide": {
+                          "type": "string"
+                        },
+                        "settlementRails": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "settleBy": {
+                          "type": "string"
+                        },
+                        "openedAtUsd": {
+                          "type": "number"
+                        },
+                        "totalMovementUsd": {
+                          "type": "number"
+                        },
+                        "instructions": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "thread": {
+                      "type": "object",
+                      "properties": {
+                        "threadId": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "open",
+                            "agreed",
+                            "withdrawn",
+                            "expired"
+                          ]
+                        },
+                        "parties": {
+                          "type": "object",
+                          "properties": {
+                            "buyer": {
+                              "type": "string"
+                            },
+                            "seller": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "seq": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "chain": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "A signed negotiation instrument. `payload.prevSignature` and `payload.prevHash` link it to the previous instrument in the thread, forming a verifiable chain.",
+                        "properties": {
+                          "payload": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "offer",
+                                  "counter",
+                                  "agreement",
+                                  "rejection"
+                                ]
+                              },
+                              "instrumentId": {
+                                "type": "string"
+                              },
+                              "threadId": {
+                                "type": "string"
+                              },
+                              "seq": {
+                                "type": "integer",
+                                "description": "1-based position in the chain."
+                              },
+                              "prevSignature": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "prevHash": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "description": "SHA-256 over the canonical JSON of the previous payload."
+                              },
+                              "from": {
+                                "type": "string"
+                              },
+                              "fromSide": {
+                                "type": "string",
+                                "enum": [
+                                  "buyer",
+                                  "seller"
+                                ]
+                              },
+                              "to": {
+                                "type": "string"
+                              },
+                              "item": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "number"
+                              },
+                              "unitPriceUsd": {
+                                "type": "number"
+                              },
+                              "priceUsd": {
+                                "type": "number",
+                                "description": "unitPriceUsd × quantity."
+                              },
+                              "currency": {
+                                "type": "string",
+                                "const": "USD"
+                              },
+                              "terms": {
+                                "type": "object",
+                                "properties": {
+                                  "delivery": {
+                                    "type": "string"
+                                  },
+                                  "validUntil": {
+                                    "type": "string"
+                                  },
+                                  "settlementRails": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "notes": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "issuedAt": {
+                                "type": "string"
+                              },
+                              "concession": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "description": "Movement analysis. Null on the opening offer.",
+                                "properties": {
+                                  "movedUsd": {
+                                    "type": "number"
+                                  },
+                                  "movedPct": {
+                                    "type": "number"
+                                  },
+                                  "gapUsd": {
+                                    "type": "number"
+                                  },
+                                  "gapPct": {
+                                    "type": "number"
+                                  },
+                                  "totalMoved": {
+                                    "type": "object",
+                                    "properties": {
+                                      "buyer": {
+                                        "type": "number"
+                                      },
+                                      "seller": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  "projectedSettleUsd": {
+                                    "type": [
+                                      "number",
+                                      "null"
+                                    ]
+                                  },
+                                  "projectedRounds": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "note": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "settlement": {
+                                "type": "object",
+                                "description": "Agreements only. What is owed, by whom, on which rails, by when.",
+                                "properties": {
+                                  "agreedPriceUsd": {
+                                    "type": "number"
+                                  },
+                                  "agreedUnitPriceUsd": {
+                                    "type": "number"
+                                  },
+                                  "quantity": {
+                                    "type": "number"
+                                  },
+                                  "payer": {
+                                    "type": "string"
+                                  },
+                                  "payerSide": {
+                                    "type": "string"
+                                  },
+                                  "payee": {
+                                    "type": "string"
+                                  },
+                                  "payeeSide": {
+                                    "type": "string"
+                                  },
+                                  "settlementRails": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "settleBy": {
+                                    "type": "string"
+                                  },
+                                  "openedAtUsd": {
+                                    "type": "number"
+                                  },
+                                  "totalMovementUsd": {
+                                    "type": "number"
+                                  },
+                                  "instructions": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "reason": {
+                                "type": "string",
+                                "description": "Rejections only."
+                              }
+                            }
+                          },
+                          "signature": {
+                            "type": "string"
+                          },
+                          "algorithm": {
+                            "type": "string",
+                            "const": "HMAC-SHA256"
+                          },
+                          "canonicalization": {
+                            "type": "string",
+                            "const": "sorted-json"
+                          }
+                        }
+                      }
+                    },
+                    "payment": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Settlement receipt for this call — same content as X-PAYMENT-RESPONSE."
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-PAYMENT-RESPONSE": {
+                "description": "Base64 JSON settlement receipt.",
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body — names the missing field and includes a worked example.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "hint": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — dual-rail x402 challenge.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequirements"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "not_a_party — signed rejection returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "rejection": {
+                      "$ref": "#/components/schemas/Instrument"
+                    },
+                    "payment": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Settlement receipt for this call — same content as X-PAYMENT-RESPONSE."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "instrument_not_found."
+          },
+          "409": {
+            "description": "cannot_accept_own_position / stale_instrument / thread_agreed / thread_expired — signed rejection returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "rejection": {
+                      "$ref": "#/components/schemas/Instrument"
+                    },
+                    "payment": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Settlement receipt for this call — same content as X-PAYMENT-RESPONSE."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Facilitator unreachable or settlement error — nothing was charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/threads/{threadId}": {
+      "get": {
+        "summary": "Full thread + server-side chain check (free)",
+        "parameters": [
+          {
+            "name": "threadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thread and chain check.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "thread": {
+                      "type": "object"
+                    },
+                    "chainCheck": {
+                      "$ref": "#/components/schemas/ChainCheck"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "thread_not_found."
+          }
+        }
+      }
+    },
+    "/verify-chain": {
+      "post": {
+        "summary": "Verify a chain of instruments you already hold (free)",
+        "description": "Checks every signature and every link — ascending sequence, matching prevSignature and prevHash, constant threadId. No server state is consulted.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "description": "A signed negotiation instrument. `payload.prevSignature` and `payload.prevHash` link it to the previous instrument in the thread, forming a verifiable chain.",
+                      "properties": {
+                        "payload": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "offer",
+                                "counter",
+                                "agreement",
+                                "rejection"
+                              ]
+                            },
+                            "instrumentId": {
+                              "type": "string"
+                            },
+                            "threadId": {
+                              "type": "string"
+                            },
+                            "seq": {
+                              "type": "integer",
+                              "description": "1-based position in the chain."
+                            },
+                            "prevSignature": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "prevHash": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "SHA-256 over the canonical JSON of the previous payload."
+                            },
+                            "from": {
+                              "type": "string"
+                            },
+                            "fromSide": {
+                              "type": "string",
+                              "enum": [
+                                "buyer",
+                                "seller"
+                              ]
+                            },
+                            "to": {
+                              "type": "string"
+                            },
+                            "item": {
+                              "type": "string"
+                            },
+                            "quantity": {
+                              "type": "number"
+                            },
+                            "unitPriceUsd": {
+                              "type": "number"
+                            },
+                            "priceUsd": {
+                              "type": "number",
+                              "description": "unitPriceUsd × quantity."
+                            },
+                            "currency": {
+                              "type": "string",
+                              "const": "USD"
+                            },
+                            "terms": {
+                              "type": "object",
+                              "properties": {
+                                "delivery": {
+                                  "type": "string"
+                                },
+                                "validUntil": {
+                                  "type": "string"
+                                },
+                                "settlementRails": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "notes": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "issuedAt": {
+                              "type": "string"
+                            },
+                            "concession": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "description": "Movement analysis. Null on the opening offer.",
+                              "properties": {
+                                "movedUsd": {
+                                  "type": "number"
+                                },
+                                "movedPct": {
+                                  "type": "number"
+                                },
+                                "gapUsd": {
+                                  "type": "number"
+                                },
+                                "gapPct": {
+                                  "type": "number"
+                                },
+                                "totalMoved": {
+                                  "type": "object",
+                                  "properties": {
+                                    "buyer": {
+                                      "type": "number"
+                                    },
+                                    "seller": {
+                                      "type": "number"
+                                    }
+                                  }
+                                },
+                                "projectedSettleUsd": {
+                                  "type": [
+                                    "number",
+                                    "null"
+                                  ]
+                                },
+                                "projectedRounds": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "note": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "settlement": {
+                              "type": "object",
+                              "description": "Agreements only. What is owed, by whom, on which rails, by when.",
+                              "properties": {
+                                "agreedPriceUsd": {
+                                  "type": "number"
+                                },
+                                "agreedUnitPriceUsd": {
+                                  "type": "number"
+                                },
+                                "quantity": {
+                                  "type": "number"
+                                },
+                                "payer": {
+                                  "type": "string"
+                                },
+                                "payerSide": {
+                                  "type": "string"
+                                },
+                                "payee": {
+                                  "type": "string"
+                                },
+                                "payeeSide": {
+                                  "type": "string"
+                                },
+                                "settlementRails": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "settleBy": {
+                                  "type": "string"
+                                },
+                                "openedAtUsd": {
+                                  "type": "number"
+                                },
+                                "totalMovementUsd": {
+                                  "type": "number"
+                                },
+                                "instructions": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "reason": {
+                              "type": "string",
+                              "description": "Rejections only."
+                            }
+                          }
+                        },
+                        "signature": {
+                          "type": "string"
+                        },
+                        "algorithm": {
+                          "type": "string",
+                          "const": "HMAC-SHA256"
+                        },
+                        "canonicalization": {
+                          "type": "string",
+                          "const": "sorted-json"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "chain": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "description": "A signed negotiation instrument. `payload.prevSignature` and `payload.prevHash` link it to the previous instrument in the thread, forming a verifiable chain.",
+                          "properties": {
+                            "payload": {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "offer",
+                                    "counter",
+                                    "agreement",
+                                    "rejection"
+                                  ]
+                                },
+                                "instrumentId": {
+                                  "type": "string"
+                                },
+                                "threadId": {
+                                  "type": "string"
+                                },
+                                "seq": {
+                                  "type": "integer",
+                                  "description": "1-based position in the chain."
+                                },
+                                "prevSignature": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "prevHash": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "description": "SHA-256 over the canonical JSON of the previous payload."
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "fromSide": {
+                                  "type": "string",
+                                  "enum": [
+                                    "buyer",
+                                    "seller"
+                                  ]
+                                },
+                                "to": {
+                                  "type": "string"
+                                },
+                                "item": {
+                                  "type": "string"
+                                },
+                                "quantity": {
+                                  "type": "number"
+                                },
+                                "unitPriceUsd": {
+                                  "type": "number"
+                                },
+                                "priceUsd": {
+                                  "type": "number",
+                                  "description": "unitPriceUsd × quantity."
+                                },
+                                "currency": {
+                                  "type": "string",
+                                  "const": "USD"
+                                },
+                                "terms": {
+                                  "type": "object",
+                                  "properties": {
+                                    "delivery": {
+                                      "type": "string"
+                                    },
+                                    "validUntil": {
+                                      "type": "string"
+                                    },
+                                    "settlementRails": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "notes": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "issuedAt": {
+                                  "type": "string"
+                                },
+                                "concession": {
+                                  "type": [
+                                    "object",
+                                    "null"
+                                  ],
+                                  "description": "Movement analysis. Null on the opening offer.",
+                                  "properties": {
+                                    "movedUsd": {
+                                      "type": "number"
+                                    },
+                                    "movedPct": {
+                                      "type": "number"
+                                    },
+                                    "gapUsd": {
+                                      "type": "number"
+                                    },
+                                    "gapPct": {
+                                      "type": "number"
+                                    },
+                                    "totalMoved": {
+                                      "type": "object",
+                                      "properties": {
+                                        "buyer": {
+                                          "type": "number"
+                                        },
+                                        "seller": {
+                                          "type": "number"
+                                        }
+                                      }
+                                    },
+                                    "projectedSettleUsd": {
+                                      "type": [
+                                        "number",
+                                        "null"
+                                      ]
+                                    },
+                                    "projectedRounds": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    },
+                                    "note": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "settlement": {
+                                  "type": "object",
+                                  "description": "Agreements only. What is owed, by whom, on which rails, by when.",
+                                  "properties": {
+                                    "agreedPriceUsd": {
+                                      "type": "number"
+                                    },
+                                    "agreedUnitPriceUsd": {
+                                      "type": "number"
+                                    },
+                                    "quantity": {
+                                      "type": "number"
+                                    },
+                                    "payer": {
+                                      "type": "string"
+                                    },
+                                    "payerSide": {
+                                      "type": "string"
+                                    },
+                                    "payee": {
+                                      "type": "string"
+                                    },
+                                    "payeeSide": {
+                                      "type": "string"
+                                    },
+                                    "settlementRails": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "settleBy": {
+                                      "type": "string"
+                                    },
+                                    "openedAtUsd": {
+                                      "type": "number"
+                                    },
+                                    "totalMovementUsd": {
+                                      "type": "number"
+                                    },
+                                    "instructions": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "reason": {
+                                  "type": "string",
+                                  "description": "Rejections only."
+                                }
+                              }
+                            },
+                            "signature": {
+                              "type": "string"
+                            },
+                            "algorithm": {
+                              "type": "string",
+                              "const": "HMAC-SHA256"
+                            },
+                            "canonicalization": {
+                              "type": "string",
+                              "const": "sorted-json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-instrument findings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChainCheck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body must be an array of instruments, or {chain: [...]}."
+          }
+        }
+      }
+    },
+    "/verify": {
+      "post": {
+        "summary": "Verify a single instrument (free)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payload": {},
+                  "signature": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "payload",
+                  "signature"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signature check.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "valid": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body must be {payload, signature}."
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "summary": "Liveness + accepted rails (free)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/x402": {
+      "get": {
+        "summary": "Machine-readable x402 manifest (free)",
+        "responses": {
+          "200": {
+            "description": "Manifest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Instrument": {
+        "type": "object",
+        "description": "A signed negotiation instrument. `payload.prevSignature` and `payload.prevHash` link it to the previous instrument in the thread, forming a verifiable chain.",
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "offer",
+                  "counter",
+                  "agreement",
+                  "rejection"
+                ]
+              },
+              "instrumentId": {
+                "type": "string"
+              },
+              "threadId": {
+                "type": "string"
+              },
+              "seq": {
+                "type": "integer",
+                "description": "1-based position in the chain."
+              },
+              "prevSignature": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "prevHash": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "SHA-256 over the canonical JSON of the previous payload."
+              },
+              "from": {
+                "type": "string"
+              },
+              "fromSide": {
+                "type": "string",
+                "enum": [
+                  "buyer",
+                  "seller"
+                ]
+              },
+              "to": {
+                "type": "string"
+              },
+              "item": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "unitPriceUsd": {
+                "type": "number"
+              },
+              "priceUsd": {
+                "type": "number",
+                "description": "unitPriceUsd × quantity."
+              },
+              "currency": {
+                "type": "string",
+                "const": "USD"
+              },
+              "terms": {
+                "type": "object",
+                "properties": {
+                  "delivery": {
+                    "type": "string"
+                  },
+                  "validUntil": {
+                    "type": "string"
+                  },
+                  "settlementRails": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                }
+              },
+              "issuedAt": {
+                "type": "string"
+              },
+              "concession": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "description": "Movement analysis. Null on the opening offer.",
+                "properties": {
+                  "movedUsd": {
+                    "type": "number"
+                  },
+                  "movedPct": {
+                    "type": "number"
+                  },
+                  "gapUsd": {
+                    "type": "number"
+                  },
+                  "gapPct": {
+                    "type": "number"
+                  },
+                  "totalMoved": {
+                    "type": "object",
+                    "properties": {
+                      "buyer": {
+                        "type": "number"
+                      },
+                      "seller": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "projectedSettleUsd": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "projectedRounds": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              },
+              "settlement": {
+                "type": "object",
+                "description": "Agreements only. What is owed, by whom, on which rails, by when.",
+                "properties": {
+                  "agreedPriceUsd": {
+                    "type": "number"
+                  },
+                  "agreedUnitPriceUsd": {
+                    "type": "number"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  },
+                  "payer": {
+                    "type": "string"
+                  },
+                  "payerSide": {
+                    "type": "string"
+                  },
+                  "payee": {
+                    "type": "string"
+                  },
+                  "payeeSide": {
+                    "type": "string"
+                  },
+                  "settlementRails": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "settleBy": {
+                    "type": "string"
+                  },
+                  "openedAtUsd": {
+                    "type": "number"
+                  },
+                  "totalMovementUsd": {
+                    "type": "number"
+                  },
+                  "instructions": {
+                    "type": "string"
+                  }
+                }
+              },
+              "reason": {
+                "type": "string",
+                "description": "Rejections only."
+              }
+            }
+          },
+          "signature": {
+            "type": "string"
+          },
+          "algorithm": {
+            "type": "string",
+            "const": "HMAC-SHA256"
+          },
+          "canonicalization": {
+            "type": "string",
+            "const": "sorted-json"
+          }
+        }
+      },
+      "ChainCheck": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "length": {
+            "type": "integer"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "seq": {
+                  "type": "integer"
+                },
+                "instrumentId": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "signatureValid": {
+                  "type": "boolean"
+                },
+                "linkValid": {
+                  "type": "boolean"
+                },
+                "problem": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "OfferRequest": {
+        "type": "object",
+        "required": [
+          "from",
+          "fromSide",
+          "to",
+          "item",
+          "unitPriceUsd"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Your agent/party identifier."
+          },
+          "fromSide": {
+            "type": "string",
+            "enum": [
+              "buyer",
+              "seller"
+            ]
+          },
+          "to": {
+            "type": "string",
+            "description": "Counterparty identifier."
+          },
+          "item": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "quantity": {
+            "type": "number",
+            "default": 1
+          },
+          "unitPriceUsd": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1000000
+          },
+          "terms": {
+            "type": "object",
+            "properties": {
+              "delivery": {
+                "type": "string"
+              },
+              "validUntil": {
+                "type": "string"
+              },
+              "settlementRails": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "notes": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "CounterRequest": {
+        "type": "object",
+        "required": [
+          "from",
+          "unitPriceUsd"
+        ],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "unitPriceUsd": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "terms": {
+            "type": "object"
+          }
+        }
+      },
+      "AcceptRequest": {
+        "type": "object",
+        "required": [
+          "from"
+        ],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "settleWithinHours": {
+            "type": "number",
+            "default": 48,
+            "minimum": 1,
+            "maximum": 720
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "PaymentRequirements": {
+        "type": "object",
+        "description": "x402 payment requirements returned with HTTP 402. `accepts` always carries BOTH rails — USDC on Base (EVM) and USDC on Solana — at the same price; the client picks one and names it in the `network` field of its X-PAYMENT payload.",
+        "properties": {
+          "x402Version": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "accepts": {
+            "type": "array",
+            "description": "One entry per accepted payment rail.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scheme": {
+                  "type": "string",
+                  "const": "exact"
+                },
+                "network": {
+                  "type": "string",
+                  "examples": [
+                    "base-sepolia",
+                    "solana"
+                  ]
+                },
+                "maxAmountRequired": {
+                  "type": "string",
+                  "description": "USDC atomic units (6 decimals)."
+                },
+                "resource": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "mimeType": {
+                  "type": "string"
+                },
+                "payTo": {
+                  "type": "string"
+                },
+                "maxTimeoutSeconds": {
+                  "type": "integer"
+                },
+                "asset": {
+                  "type": "string",
+                  "description": "USDC contract (EVM) or mint (Solana)."
+                },
+                "extra": {
+                  "type": "object",
+                  "description": "EVM: EIP-712 domain (name/version). Solana: {name, decimals, feePayer} — feePayer sponsors the SOL network fee so the buyer needs only USDC."
+                }
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "x402Version": 1,
+            "error": "X-PAYMENT header is required",
+            "accepts": [
+              {
+                "scheme": "exact",
+                "network": "base-sepolia",
+                "maxAmountRequired": "1000",
+                "resource": "https://your-deployment.example.com/offers",
+                "description": "x402-negotiator: POST /offers",
+                "mimeType": "application/json",
+                "payTo": "0x40252CFDF8B20Ed757D61ff157719F33Ec332402",
+                "maxTimeoutSeconds": 60,
+                "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+                "extra": {
+                  "name": "USDC",
+                  "version": "2"
+                }
+              },
+              {
+                "scheme": "exact",
+                "network": "solana",
+                "maxAmountRequired": "1000",
+                "resource": "https://your-deployment.example.com/offers",
+                "description": "x402-negotiator: POST /offers",
+                "mimeType": "application/json",
+                "payTo": "WwwuGbqHrwF5RG89KhUbmRWEvjnRH9k5kVM5p7T3WwW",
+                "maxTimeoutSeconds": 60,
+                "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                "extra": {
+                  "name": "USD Coin",
+                  "decimals": 6,
+                  "feePayer": "2wKupLR9q6wXYppw8Gr2NvWxKBUqm4PPJKkQfoxHDBg4",
+                  "amount": "1000"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "PaymentReceipt": {
+        "type": "object",
+        "description": "Settlement receipt, base64-JSON in the X-PAYMENT-RESPONSE header of every paid 200.",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "rail": {
+            "type": "string",
+            "enum": [
+              "evm",
+              "solana"
+            ]
+          },
+          "network": {
+            "type": "string"
+          },
+          "transaction": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "payer": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "amount": {
+            "type": "string"
+          },
+          "asset": {
+            "type": "string",
+            "const": "USDC"
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4021",
+      "description": "local dev"
+    },
+    {
+      "url": "https://your-deployment.example.com",
+      "description": "self-hosted"
+    }
+  ]
+}

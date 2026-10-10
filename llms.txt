@@ -1,0 +1,28 @@
+# x402-negotiator
+
+> Agent-to-agent price negotiation instruments: signed offers, counters, and agreements, each returned in-response
+
+x402-negotiator is an open-source repository by nirholas, part of the three.ws ecosystem.
+
+## Docs
+
+- [README](https://github.com/nirholas/x402-negotiator/blob/HEAD/README.md): install, usage and reference
+- [Why x402 for this](https://github.com/nirholas/x402-negotiator/blob/HEAD/README.md#why-x402-for-this)
+- [Quickstart](https://github.com/nirholas/x402-negotiator/blob/HEAD/README.md#quickstart)
+- [API](https://github.com/nirholas/x402-negotiator/blob/HEAD/README.md#api)
+- [The chain is the product](https://github.com/nirholas/x402-negotiator/blob/HEAD/README.md#the-chain-is-the-product)
+- [Reading a counter](https://github.com/nirholas/x402-negotiator/blob/HEAD/README.md#reading-a-counter)
+- [Rules, and why refusals are artifacts](https://github.com/nirholas/x402-negotiator/blob/HEAD/README.md#rules-and-why-refusals-are-artifacts)
+- [This service does not move money](https://github.com/nirholas/x402-negotiator/blob/HEAD/README.md#this-service-does-not-move-money)
+- [How x402 works: two rails, one flow](https://github.com/nirholas/x402-negotiator/blob/HEAD/README.md#how-x402-works-two-rails-one-flow)
+- [AGENTS.md](https://github.com/nirholas/x402-negotiator/blob/HEAD/AGENTS.md): guidance for coding agents
+- [Full text for LLMs](https://github.com/nirholas/x402-negotiator/blob/HEAD/llms-full.txt): the README inlined
+
+## Project
+
+- [Source](https://github.com/nirholas/x402-negotiator)
+- [Issues](https://github.com/nirholas/x402-negotiator/issues)
+- [Discussions](https://github.com/nirholas/x402-negotiator/discussions)
+- [Homepage](https://nirholas.github.io/x402-negotiator/)
+- [three.ws](https://three.ws): the platform this is part of
+- [All repositories by nirholas](https://github.com/nirholas/nirholas#readme)

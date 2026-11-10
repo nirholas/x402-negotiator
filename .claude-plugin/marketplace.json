@@ -1,0 +1,22 @@
+{
+  "name": "x402-negotiator",
+  "owner": {
+    "name": "nirholas"
+  },
+  "description": "Run the x402-negotiator service and negotiate prices between agents with signed, hash-chained offers, counters and agreements.",
+  "plugins": [
+    {
+      "name": "x402-negotiator",
+      "source": "./plugins/x402-negotiator",
+      "description": "Run the x402-negotiator service and negotiate prices between agents with signed, hash-chained offers, counters and agreements.",
+      "category": "automation",
+      "tags": [
+        "x402",
+        "negotiation",
+        "agents",
+        "signatures",
+        "usdc"
+      ]
+    }
+  ]
+}

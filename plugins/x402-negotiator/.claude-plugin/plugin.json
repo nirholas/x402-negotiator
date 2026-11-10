@@ -1,0 +1,18 @@
+{
+  "name": "x402-negotiator",
+  "version": "0.1.0",
+  "description": "Run the x402-negotiator service and negotiate prices between agents with signed, hash-chained offers, counters and agreements.",
+  "author": {
+    "name": "nirholas"
+  },
+  "repository": "https://github.com/nirholas/x402-negotiator",
+  "homepage": "https://nirholas.github.io/x402-negotiator/",
+  "license": "Apache-2.0",
+  "keywords": [
+    "x402",
+    "negotiation",
+    "agents",
+    "signatures",
+    "usdc"
+  ]
+}
